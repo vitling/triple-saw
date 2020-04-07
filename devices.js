@@ -5,8 +5,8 @@
   https://creativecommons.org/licenses/by/4.0/
 */
 
-// Compound webaudio devices
 
+/** Simple monosynth with decay-enveloped amp and lowpass filter */
 class MonoSynth {
     constructor(audio, type="sawtooth") {
         this.osc = audio.createOscillator();
@@ -46,6 +46,8 @@ class MonoSynth {
         this.filter.frequency.setTargetAtTime(filterFreq / 2, ctime + attack, decay/2);
     }
 }
+
+/** Descending sine-based kick sound */
 class Kick {
     constructor(audio) {
         this.osc = audio.createOscillator();
@@ -72,6 +74,7 @@ class Kick {
     }
 }
 
+/** Delay line with feedback */
 class FeedbackDelay {
     constructor(audio, delayTime, feedback) {
         this.delay = audio.createDelay();
@@ -87,6 +90,7 @@ class FeedbackDelay {
     }
 }
 
+/** Panner unit (should be just StereoPanner but that's not supported by Safari) */
 class Panner {
     constructor(audio, pan) {
         if (audio.createStereoPanner) {

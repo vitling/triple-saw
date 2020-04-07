@@ -10,53 +10,72 @@ import { MonoSynth, Kick, FeedbackDelay, Panner } from "./devices.js";
 
 const startButton = document.getElementById("startButton");
 
+/** Scale definitions in semitones-above-root. Only minPent made it into the final work, but fun to experiment */
 const SCALES = {
     majPent: [0, 2, 4, 7, 9],
     maj: [0, 2, 4, 5, 7, 9, 11],
-    minPent: [0,2,3,7,10],
-    minSix: [0,2,3,5,7,10]
+    minPent: [0, 2, 3, 7, 10],
+    minSix: [0, 2, 3, 5, 7, 10]
 };
-const NOTE_NAMES = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"];
-const SEMITONE_FACTOR = Math.pow(2, 1.0 / 12); // equal temperament tuning
 
+/** For displaying the current key */
+const NOTE_NAMES = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"];
+
+/** Frequency multiplication factor per semitone for equal temperament tuning */
+const SEMITONE_FACTOR = Math.pow(2, 1.0 / 12);
+
+/** Choose a random element from array. Set power > 1 to left-bias selection */
 function choose(array, power = 1) {
     return array[rndInt(array.length, power)]
 }
 
+/** Choose a random integer 0 <= v < max. Set power > 1 to low-bias selection */
 function rndInt(max, power = 1) {
     return Math.floor(Math.pow(Math.random(), power) * max);
 }
 
+/** Create a new pattern which can be mutated in a variety of ways */
 function Pattern(scale) {
     const seq=[];
 
+    // Random note from 2-octave range
+    function randomNote() {
+        return choose(scale) + choose([0,12]);
+    }
+
+    // Truncate or extend sequence to new length. Fill any empty slots with random notes
     function reshapeSequence() {
         const seqLength = choose([3,4, 5,8,12]);
         seq.length = seqLength;
         for (let i =0 ; i < seqLength; i++) {
             if (seq[i] === undefined) {
-                seq[i] = choose(scale) + choose([0,12]);
+                seq[i] = randomNote();
             }
         }
     }
+
+    // swap position of 2 elements in sequence
     function swap() {
-        //swap elements
         let a = rndInt(seq.length);
         let b = rndInt(seq.length);
         let t = seq[a];
         seq[a] = seq[b];
         seq[b] = t;
     }
+
+    // randomize single element in sequence
     function randomizeOne() {
-        //randomize element
         let index = rndInt(seq.length);
-        seq[index] = choose(scale) + choose([0, 12])
+        seq[index] =randomizeOne();
     }
 
+    /** Mutate the pattern by applying one of the above transformations */
     function mutate() {
+        // The strongly left-biased selection means that swaps are way more frequent than reshapes
         choose([swap, randomizeOne, reshapeSequence], 5)();
     }
 
+    /** Retrieve the note value for a given step */
     function get(step) {
         return seq[step % seq.length];
     }
@@ -66,6 +85,13 @@ function Pattern(scale) {
     return {seq, get, mutate}
 }
 
+/** A parameter that randomly wanders between the lowerBound and upperBound, using 2nd order random variation.
+ *
+ * @param lowerBound below this correction will be applied upwards
+ * @param upperBound above this correction will be applied downwards
+ * @param drift amount of random variation in velocity
+ * @param correction how much correction is applied when param is out of bounds
+ */
 function WanderingParameter(lowerBound, upperBound, drift, correction) {
     let value = (lowerBound + upperBound) / 2;
     let direction = Math.random() * 20 * drift - 10 * drift;
@@ -120,7 +146,6 @@ function start() {
         panner.out.connect(mainOut);
 
         function keyToFreq(semisAboveBase) {
-            // equal temperament tuning
             return Math.pow(SEMITONE_FACTOR, semisAboveBase + baseKey) * baseAPitch;
         }
 
