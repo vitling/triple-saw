@@ -1,3 +1,11 @@
+<!--
+  Copyright 2020 David Whiting
+
+  This work is licensed under a Creative Commons Attribution 4.0 International License
+  https://creativecommons.org/licenses/by/4.0/
+-->
+
+<!-- SVG filters for CRT simulator (note this will not render anything as an SVG on its own)-->
 <svg width="230" height="120" xmlns="http://www.w3.org/2000/svg">
     <filter id="horizontalBlur">
             <feConvolveMatrix

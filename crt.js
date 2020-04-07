@@ -1,3 +1,12 @@
+/*
+  Copyright 2020 David Whiting
+
+  This work is licensed under a Creative Commons Attribution 4.0 International License
+  https://creativecommons.org/licenses/by/4.0/
+*/
+
+// Retro CRT simulator using scanlines, jitter, sync wobbles and horizontal blur
+
 function createCRT(screenCanvas, filtersPath="filters.svg", alphaScale=1) {
     const canvas = screenCanvas ? screenCanvas : document.createElement("canvas");
     const w = canvas.width = 640;
@@ -35,6 +44,8 @@ function createCRT(screenCanvas, filtersPath="filters.svg", alphaScale=1) {
     }
     let nI = 0;
 
+    // In Firefox painting with svg filters is really slow. Rather than have a clunky browser-based toggle, we just see
+    // if it's going too slowly and fall back to basic rendering if it is.
     let slowFrames = 0;
     let performanceTrip = false;
     const performanceThreshold = 20;
