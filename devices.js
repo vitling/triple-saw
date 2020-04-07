@@ -22,7 +22,7 @@ class MonoSynth {
     connect(target) {
         this.out.connect(target);
     }
-    play(pitch, filterFreq, decay = secondsPer16th * 4) {
+    play(pitch, filterFreq, decay) {
         let ctime = this.audio.currentTime+0.01;
         const attack = 0.04;
         const glide = 0.005;

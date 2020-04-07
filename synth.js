@@ -12,10 +12,77 @@ const SCALES = {
 const NOTE_NAMES = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"];
 const SEMITONE_FACTOR = Math.pow(2, 1.0 / 12); // equal temperament tuning
 
+function choose(array, power = 1) {
+    return array[rndInt(array.length, power)]
+}
+
+function rndInt(max, power = 1) {
+    return Math.floor(Math.pow(Math.random(), power) * max);
+}
+
+function Pattern(scale) {
+    const seq=[];
+
+    function reshapeSequence() {
+        const seqLength = choose([3,4, 5,8,12]);
+        seq.length = seqLength;
+        for (let i =0 ; i < seqLength; i++) {
+            if (seq[i] === undefined) {
+                seq[i] = choose(scale) + choose([0,12]);
+            }
+        }
+    }
+    function swap() {
+        //swap elements
+        let a = rndInt(seq.length);
+        let b = rndInt(seq.length);
+        let t = seq[a];
+        seq[a] = seq[b];
+        seq[b] = t;
+    }
+    function randomizeOne() {
+        //randomize element
+        let index = rndInt(seq.length);
+        seq[index] = choose(scale) + choose([0, 12])
+    }
+
+    function mutate() {
+        choose([swap, randomizeOne, reshapeSequence], 5)();
+    }
+
+    function get(step) {
+        return seq[step % seq.length];
+    }
+
+    reshapeSequence();
+
+    return {seq, get, mutate}
+}
+
+function WanderingParameter(lowerBound, upperBound, drift, correction) {
+    let value = (lowerBound + upperBound) / 2;
+    let direction = Math.random() * 20 * drift - 10 * drift;
+
+    function moveAndGet() {
+        value += direction;
+        direction *= 0.95;
+        if (value < lowerBound) {
+            direction += correction;
+        }
+        if (value > upperBound) {
+            direction -= correction;
+        }
+
+        direction += choose([drift, -drift]);
+        return value;
+    }
+
+    return {moveAndGet: moveAndGet, value: () => value};
+}
+
 function start() {
 
     const audio = new (window.AudioContext || window.webkitAudioContext)();
-
 
     const bpm = 111;
     const secondsPerBeat = 60 / bpm;
@@ -30,14 +97,6 @@ function start() {
         if (k.key === "k") kickEnabled = !kickEnabled;
         if (k.key === "m") mondrianEnabled = !mondrianEnabled;
     });
-
-    function choose(array, power = 1) {
-        return array[rndInt(array.length, power)]
-    }
-
-    function rndInt(max, power = 1) {
-        return Math.floor(Math.pow(Math.random(), power) * max);
-    }
 
     let baseKey = rndInt(12);
 
@@ -59,68 +118,27 @@ function start() {
         }
 
         let stepNumber = 0;
-        let seq = [];
+        const pattern = Pattern(scale);
 
-        //### Pattern mutators
-        function reshapeSequence() {
-            const seqLength = choose([3,4, 5,8,12]);
-            seq.length = seqLength;
-            for (let i =0 ; i < seqLength; i++) {
-                if (seq[i] === undefined) {
-                    seq[i] = choose(scale) + choose([0,12]);
-                }
-            }
-        }
-        reshapeSequence();
-
-        function swap() {
-            //swap elements
-            let a = rndInt(seq.length);
-            let b = rndInt(seq.length);
-            let t = seq[a];
-            seq[a] = seq[b];
-            seq[b] = t;
-        }
-
-        function randomizeOne() {
-            //randomize element
-            let index = rndInt(seq.length);
-            seq[index] = choose(scale) + choose([0, 12])
-        }
-
-        function mutate() {
-            choose([swap, randomizeOne, reshapeSequence], 5)();
-        }
-
-        // TODO refactor these into general-purpose second-order brownian parameter
-        let filterExp = 7;
-        let filterDirection = Math.random() * 0.04 - 0.02;
-
-        let delayFeedback = 0.5;
-        let delayDirection = Math.random() * 0.004 - 0.002;
+        const filterExponent = WanderingParameter(5, 9, 0.002, 0.03);
+        const delayFeedback = WanderingParameter(0.1,0.9,0.0007,0.001);
 
         function step() {
             stepNumber++;
-            monoSynth.play(keyToFreq(seq[stepNumber % seq.length]), Math.exp(filterExp), 0.2);
+
+            const oscFreq = keyToFreq(pattern.get(stepNumber));
+            const filterFreq = Math.exp(filterExponent.moveAndGet());
+
+            monoSynth.play(oscFreq, filterFreq, 0.2);
+
             if (stepNumber % 4 === 0) {
-                mutate();
+                pattern.mutate();
             }
-            filterExp += filterDirection;
-            filterDirection += choose([0.002, -0.002]);
-            filterDirection *= 0.95;
-            if (filterExp > 9) filterDirection -= 0.03;
-            if (filterExp < 5) filterDirection += 0.03;
 
-
-            delayFeedback += delayDirection;
-            delayDirection += choose([0.0007, -0.0007]);
-            delayDirection *= 0.95;
-            if (delayFeedback > 0.9) delayDirection -= 0.001;
-            if (delayFeedback < 0.1) delayDirection += 0.001;
-            delay.feedback.setTargetAtTime(delayFeedback, audio.currentTime, 0.04);
+            delay.feedback.setTargetAtTime(delayFeedback.moveAndGet(), audio.currentTime, 0.04);
 
             return {
-               step: (stepNumber % seq.length), filter: Math.floor(Math.exp(filterExp)), delayFb: Math.floor(delayFeedback * 100), seq
+               step: (stepNumber % pattern.seq.length), filter: Math.floor(Math.exp(filterExponent.value())), delayFb: Math.floor(delayFeedback.value() * 100), seq: pattern.seq
             };
         }
         return {step}
