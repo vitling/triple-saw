@@ -66,7 +66,7 @@ function Pattern(scale) {
     // randomize single element in sequence
     function randomizeOne() {
         let index = rndInt(seq.length);
-        seq[index] =randomizeOne();
+        seq[index] = randomNote();
     }
 
     /** Mutate the pattern by applying one of the above transformations */
@@ -192,6 +192,7 @@ function start() {
            kick.play();
         }
         if (stepGlobal % 128 === 0) {
+            // Allow key moves up to 2 steps along the cycle of fifths in either direction
             baseKey = (baseKey + choose([0,7,5,10,2], 3)) % 12;
         }
         let leftOut = left.step();
