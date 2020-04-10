@@ -39,7 +39,7 @@ class MonoSynth {
         this.osc.frequency.setTargetAtTime((1 + error) * pitch, ctime, glide);
 
         this.amp.gain.cancelScheduledValues(ctime);
-        this.amp.gain.setTargetAtTime(0.1, ctime, attack);
+        this.amp.gain.setTargetAtTime(0.15, ctime, attack);
         this.amp.gain.setTargetAtTime(0.0, ctime + attack, decay);
         this.filter.frequency.cancelScheduledValues(ctime);
         this.filter.frequency.setTargetAtTime(filterFreq, ctime, attack);
@@ -66,11 +66,42 @@ class Kick {
     play() {
         let ctime = this.audio.currentTime+0.01;
         this.amp.gain.cancelScheduledValues(ctime);
-        this.amp.gain.setTargetAtTime(0.3, ctime, 0.002);
+        this.amp.gain.setTargetAtTime(0.5, ctime, 0.002);
         this.amp.gain.setTargetAtTime(0, ctime +0.002, 0.1);
         this.osc.frequency.cancelScheduledValues(ctime);
         this.osc.frequency.setTargetAtTime(440, ctime, 0.002);
         this.osc.frequency.setTargetAtTime(55, ctime +0.002, + 0.02);
+    }
+}
+
+class Hat {
+    constructor(audio) {
+        this.osc = this.noise(audio);
+        this.amp = audio.createGain();
+        this.amp.gain.setValueAtTime(0, audio.currentTime);
+        this.osc.connect(this.amp);
+        this.out = this.amp;
+        this.audio = audio;
+    }
+    connect(target) {
+        this.out.connect(target);
+    }
+    play(gain = 0.2, decay = Math.random() * 0.02+0.01) {
+        let ctime = this.audio.currentTime + 0.01;
+        this.amp.gain.cancelScheduledValues(ctime);
+        this.amp.gain.setTargetAtTime(gain*0.4, ctime, 0.002);
+        this.amp.gain.setTargetAtTime(0, ctime + 0.002, decay);
+    }
+    noise(audio) {
+        const bufferSize = 4096;
+        const whiteNoise = audio.createScriptProcessor(bufferSize, 1, 1);
+        whiteNoise.onaudioprocess = function (e) {
+            const output = e.outputBuffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) {
+                output[i] = Math.random() * 2 - 1;
+            }
+        };
+        return whiteNoise;
     }
 }
 
@@ -107,4 +138,4 @@ class Panner {
     }
 }
 
-export {MonoSynth, FeedbackDelay, Kick, Panner}
+export {MonoSynth, FeedbackDelay, Kick, Panner, Hat}

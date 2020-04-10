@@ -6,7 +6,7 @@
 */
 
 import { Visualiser } from "./visualiser.js";
-import { MonoSynth, Kick, FeedbackDelay, Panner } from "./devices.js";
+import { MonoSynth, Kick, FeedbackDelay, Panner, Hat } from "./devices.js";
 
 const startButton = document.getElementById("startButton");
 
@@ -124,10 +124,12 @@ function start() {
     let mainOut = audio.destination;
 
     let kickEnabled = false;
+    let hatEnabled = false;
     let mondrianEnabled = false;
 
     window.addEventListener("keypress", function(k) {
         if (k.key === "k") kickEnabled = !kickEnabled;
+        if (k.key === "h") hatEnabled = !hatEnabled;
         if (k.key === "m") mondrianEnabled = !mondrianEnabled;
     });
 
@@ -179,7 +181,9 @@ function start() {
     const vis = Visualiser();
 
     const kick = new Kick(audio);
+    const hat = new Hat(audio);
     kick.out.connect(mainOut);
+    hat.out.connect(mainOut);
 
     const left = createPart(110, SCALES.minPent, "sawtooth", -0.6);
     const right = createPart(110, SCALES.minPent, "sawtooth", 0.6);
@@ -190,6 +194,9 @@ function start() {
         stepGlobal++;
         if (kickEnabled && stepGlobal % 4 === 0) {
            kick.play();
+        }
+        if (hatEnabled) {
+            hat.play(0.1 * (0.4*Math.random() + 0.3 * ((stepGlobal + 1) % 2) + 0.3 * ((stepGlobal + 1) % 3) + 0.6 * ((stepGlobal + 1) % 4)));
         }
         if (stepGlobal % 128 === 0) {
             // Allow key moves up to 2 steps along the cycle of fifths in either direction
